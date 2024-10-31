@@ -80,11 +80,57 @@ void windowResizeCallback(GLFWwindow* window, int width, int height) {
 	//TODO
 }
 
+gps::Camera camera(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+float lastX = 400, lastY = 300; // screen center
+float yaw = -90.0f, pitch = 0.0f;
+bool firstMouse = true;
+
+void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
+	if (firstMouse) {
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+
+	float xoffset = xpos - lastX;
+	float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+	lastX = xpos;
+	lastY = ypos;
+
+	float sensitivity = 0.1f; // adjust sensitivity as needed
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
+
+	yaw += xoffset;
+	pitch += yoffset;
+
+	// Constrain the pitch angle
+	if (pitch > 89.0f) pitch = 89.0f;
+	if (pitch < -89.0f) pitch = -89.0f;
+
+	camera.rotate(pitch, yaw);
+}
+
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
 
 		glfwSetWindowShouldClose(glWindow, GLFW_TRUE);
+	}
+
+	float cameraSpeed = 0.05f; // adjust speed as needed
+	if (key == GLFW_KEY_W && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+		camera.move(gps::MOVE_FORWARD, cameraSpeed);
+	}
+	if (key == GLFW_KEY_S && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+		camera.move(gps::MOVE_BACKWARD, cameraSpeed);
+	}
+	if (key == GLFW_KEY_A && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+		camera.move(gps::MOVE_LEFT, cameraSpeed);
+	}
+	if (key == GLFW_KEY_D && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+		camera.move(gps::MOVE_RIGHT, cameraSpeed);
 	}
 
 	if (key == GLFW_KEY_F && action == GLFW_PRESS) {
@@ -233,6 +279,10 @@ void renderScene() {
 	glBindVertexArray(objectVAO);
 	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
+	glm::mat4 view = camera.getViewMatrix();
+	GLint viewLoc = glGetUniformLocation(myCustomShader.shaderProgram, "view");
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+
 }
 
 void cleanup() {
@@ -284,6 +334,10 @@ int main(int argc, const char * argv[]) {
 	// send matrix data to shader 
 	GLint projLoc = glGetUniformLocation(myCustomShader.shaderProgram, "projection");
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+	glfwSetCursorPosCallback(glWindow, mouseCallback);
+	glfwSetInputMode(glWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
 
 	while (!glfwWindowShouldClose(glWindow)) {
 		renderScene();

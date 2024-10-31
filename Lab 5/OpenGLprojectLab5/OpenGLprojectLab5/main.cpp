@@ -87,7 +87,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		glfwSetWindowShouldClose(glWindow, GLFW_TRUE);
 	}
 
-	if (key == GLFW_KEY_T && action == GLFW_PRESS) {
+	if (key == GLFW_KEY_F && action == GLFW_PRESS) {
 
 		wireframeView = !wireframeView;
 
@@ -174,6 +174,7 @@ bool initOpenGLWindow() {
 }
 
 float angle = 0;
+float angle2 = 0;
 void renderScene() {
 
 	glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
@@ -196,6 +197,10 @@ void renderScene() {
 		angle += 0.0002f;
 	}
 
+	if (glfwGetKey(glWindow, GLFW_KEY_T)) {
+		angle2 += 0.0002f;
+	}
+
 	// create rotation matrix 
 	model = glm::rotate(model, angle, glm::vec3(0, 1, 0));
 	// send matrix data to vertex shader 
@@ -205,28 +210,29 @@ void renderScene() {
 	glBindVertexArray(objectVAO);
 	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
-	// create a translation matrix 
+	// Reset the model matrix to identity
+	model = glm::mat4(1.0f);
+
+	// Translation to the cube's center at (2, 0, 0)
 	model = glm::translate(model, glm::vec3(2, 0, 0));
-	// send matrix data to vertex shader 
+
+	// Apply rotation around the cube's center
+	model = glm::rotate(model, angle2, glm::vec3(0, 1, 0));
+
+	// Translate back to the cube's original position
+	model = glm::translate(model, glm::vec3(-2, 0, 0));
+
+	// Translate again to place the cube at (2, 0, 0) after rotation
+	model = glm::translate(model, glm::vec3(2, 0, 0));
+
+	// Send the transformation matrix data to the vertex shader
 	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-	// draw the second cube 
+
+	// Draw the second cube
 	myCustomShader.useShaderProgram();
 	glBindVertexArray(objectVAO);
 	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
-	// create rotation matrix 
-	model = glm::rotate(model, 0.3f, glm::vec3(0, 1, 0));
-	// send matrix data to vertex shader 
-	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-
-	// create a translation matrix 
-	model = glm::translate(model, glm::vec3(2, 0, 0));
-	// send matrix data to vertex shader 
-	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-	// draw the second cube 
-	myCustomShader.useShaderProgram();
-	glBindVertexArray(objectVAO);
-	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 }
 
 void cleanup() {

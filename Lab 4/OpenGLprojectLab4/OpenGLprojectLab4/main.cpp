@@ -22,8 +22,6 @@ int glWindowHeight = 480;
 int retina_width, retina_height;
 GLFWwindow* glWindow = NULL;
 
-bool isWireframe = false;
-
 //vertex coordinates in normalized device coordinates
 //GLfloat vertexData[] = {
 //        0.0f,	0.5f,	0.0f,
@@ -32,8 +30,8 @@ bool isWireframe = false;
 //};
 
 GLfloat vertexData[] = {
-    //vertex position and vertex color 
-    0.0f, 0.8f, 0.0f, 0.0f, 0.0f, 0.0f,
+    //vertex position and vertex color
+    0.0f, 0.7f, 0.0f, 0.0f, 1.0f, 0.0f,
     -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
     -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f,
     0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
@@ -52,24 +50,17 @@ GLuint objectVAO;
 
 gps::Shader myCustomShader;
 
-float offsetX = 0;
-float offsetY = 0;
+GLint uniformXLocation;
+GLint uniformYLocation;
+
+float valUniformX = 0;
+float valUniformY = 0;
 
 void windowResizeCallback(GLFWwindow* window, int width, int height)
 {
     fprintf(stdout, "window resized to width: %d , and height: %d\n", width, height);
-
-    // Update the global variables for the window size
-    glWindowWidth = width;
-    glWindowHeight = height;
-
-    // Set the viewport to match the new window size
-    glViewport(0, 0, width, height);
-
-    // Optionally, update the framebuffer size for high DPI displays
-    glfwGetFramebufferSize(window, &retina_width, &retina_height);
+    //TODO
 }
-
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -78,34 +69,28 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         glfwSetWindowShouldClose(glWindow, GLFW_TRUE);
     }
 
-    if (key == GLFW_KEY_A && action == GLFW_PRESS) {
-
-        offsetX -= 0.1;
+    if (glfwGetKey(glWindow, GLFW_KEY_A) == GLFW_PRESS) {
+        valUniformX -= 0.1;
+        glUniform1f(uniformXLocation, valUniformX);
+        glUniform1f(uniformYLocation, valUniformY);
     }
 
-    if (key == GLFW_KEY_D && action == GLFW_PRESS) {
-
-        offsetX += 0.1;
+    if (glfwGetKey(glWindow, GLFW_KEY_D) == GLFW_PRESS) {
+        valUniformX += 0.1;
+        glUniform1f(uniformXLocation, valUniformX);
+        glUniform1f(uniformYLocation, valUniformY);
     }
 
-    if (key == GLFW_KEY_W && action == GLFW_PRESS) {
-
-        offsetY += 0.1;
+    if (glfwGetKey(glWindow, GLFW_KEY_W) == GLFW_PRESS) {
+        valUniformY += 0.1;
+        glUniform1f(uniformXLocation, valUniformX);
+        glUniform1f(uniformYLocation, valUniformY);
     }
 
-    if (key == GLFW_KEY_S && action == GLFW_PRESS) {
-
-        offsetY -= 0.1;
-    }
-
-    if (key == GLFW_KEY_F && action == GLFW_PRESS) {
-        isWireframe = !isWireframe; // Comutăm starea
-        if (isWireframe) {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // Activăm modul wireframe
-        }
-        else {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // Activăm modul plin
-        }
+    if (glfwGetKey(glWindow, GLFW_KEY_S) == GLFW_PRESS) {
+        valUniformY -= 0.1;
+        glUniform1f(uniformXLocation, valUniformX);
+        glUniform1f(uniformYLocation, valUniformY);
     }
 }
 
@@ -122,11 +107,11 @@ void initObjects()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, verticesEBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(vertexIndices), vertexIndices, GL_STATIC_DRAW);
 
-    //vertex position attribute 
+    //vertex position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
 
-    //vertex colour attribute 
+    //vertex colour attribute
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
@@ -185,24 +170,22 @@ void renderScene()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     glViewport(0, 0, retina_width, retina_height);
+       
 
-    if (glfwGetKey(glWindow, GLFW_KEY_A) == GLFW_PRESS) {
-        //TODO
+    if (glfwGetKey(glWindow, GLFW_KEY_Q) == GLFW_PRESS) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
 
-    if (glfwGetKey(glWindow, GLFW_KEY_D) == GLFW_PRESS) {
-        //TODO
+    if (glfwGetKey(glWindow, GLFW_KEY_E) == GLFW_PRESS) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
     myCustomShader.useShaderProgram();
 
-    //update uniforme pt 2
-    glUniform1f(glGetUniformLocation(myCustomShader.shaderProgram, "offsetX"), offsetX);
-    glUniform1f(glGetUniformLocation(myCustomShader.shaderProgram, "offsetY"), offsetY);
-
     glBindVertexArray(objectVAO);
-    glDrawElements(GL_TRIANGLES, 9, GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
+
+    //glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawElements(GL_TRIANGLES, sizeof(vertexIndices), GL_UNSIGNED_INT, 0);
 }
 
 void cleanup() {
@@ -232,8 +215,14 @@ int main(int argc, const char * argv[]) {
     myCustomShader.loadShader("shaders/shaderStart.vert", "shaders/shaderStart.frag");
     myCustomShader.useShaderProgram();
 
-    GLint uniformColourLocation = glGetUniformLocation(myCustomShader.shaderProgram, "uniformColour");
-    glUniform3f(uniformColourLocation, 0.15f, 0.0f, 0.84);
+    //folosire uniform
+    //GLint uniformColourLocation = glGetUniformLocation(myCustomShader.shaderProgram, "uniformColour");
+    //glUniform3f(uniformColourLocation, 0.15f, 0.0f, 0.84f);
+
+    uniformXLocation = glGetUniformLocation(myCustomShader.shaderProgram, "uniformX");
+    glUniform1f(uniformXLocation, valUniformX);
+    uniformYLocation = glGetUniformLocation(myCustomShader.shaderProgram, "uniformY");
+    glUniform1f(uniformYLocation, valUniformY);
 
     while (!glfwWindowShouldClose(glWindow)) {
         renderScene();

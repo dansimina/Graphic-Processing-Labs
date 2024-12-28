@@ -1,8 +1,8 @@
 #ifndef Camera_hpp
 #define Camera_hpp
 
-#include <D:/Documents/Facultate/PG/Graphic-Processing-Labs/glm/glm.hpp>
-#include <D:/Documents/Facultate/PG/Graphic-Processing-Labs/glm/gtx/transform.hpp>
+#include <../../../../glm/glm.hpp>
+#include <../../../../glm/gtx/transform.hpp>
 
 namespace gps {
     

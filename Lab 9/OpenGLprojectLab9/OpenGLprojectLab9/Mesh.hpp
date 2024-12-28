@@ -9,7 +9,7 @@
     #include <GL/glew.h>
 #endif
 
-#include <D:/Documents/Facultate/PG/Graphic-Processing-Labs/glm/glm.hpp>
+#include <../../../../glm/glm.hpp>
 
 #include "Shader.hpp"
 

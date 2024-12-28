@@ -16,10 +16,10 @@
 
 #include <GLFW/glfw3.h>
 
-#include <D:/Documents/Facultate/PG/Graphic-Processing-Labs/glm/glm.hpp>
-#include <D:/Documents/Facultate/PG/Graphic-Processing-Labs/glm/gtc/matrix_transform.hpp>
-#include <D:/Documents/Facultate/PG/Graphic-Processing-Labs/glm/gtc/matrix_inverse.hpp>
-#include <D:/Documents/Facultate/PG/Graphic-Processing-Labs/glm/gtc/type_ptr.hpp>
+#include <../../../../glm/glm.hpp>
+#include <../../../../glm/gtc/matrix_transform.hpp>
+#include <../../../../glm/gtc/matrix_inverse.hpp>
+#include <../../../../glm/gtc/type_ptr.hpp>
 
 #include "Shader.hpp"
 #include "Model3D.hpp"
@@ -68,9 +68,7 @@ gps::Model3D screenQuad;
 gps::Shader myCustomShader;
 gps::Shader lightShader;
 gps::Shader screenQuadShader;
-
-GLuint shadowMapFBO;
-GLuint depthMapTexture;
+gps::Shader depthMapShader;
 
 bool showDepthMap;
 
@@ -94,16 +92,9 @@ GLenum glCheckError_(const char *file, int line) {
 #define glCheckError() glCheckError_(__FILE__, __LINE__)
 
 void windowResizeCallback(GLFWwindow* window, int width, int height) {
-	glViewport(0, 0, width, height);
-	glWindowWidth = width;
-	glWindowHeight = height;
-	glfwGetFramebufferSize(window, &retina_width, &retina_height);
-
-	// Update projection matrix
-	projection = glm::perspective(glm::radians(45.0f), (float)retina_width / (float)retina_height, 0.1f, 1000.0f);
-	glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+	fprintf(stdout, "window resized to width: %d , and height: %d\n", width, height);
+	//TODO	
 }
-
 
 void keyboardCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
@@ -244,6 +235,8 @@ void initShaders() {
 	lightShader.useShaderProgram();
 	screenQuadShader.loadShader("shaders/screenQuad.vert", "shaders/screenQuad.frag");
 	screenQuadShader.useShaderProgram();
+	depthMapShader.loadShader("shaders/depthShader.vert", "shaders/depthShader.frag");
+	depthMapShader.useShaderProgram();
 }
 
 void initUniforms() {
@@ -280,40 +273,44 @@ void initUniforms() {
 	glUniformMatrix4fv(glGetUniformLocation(lightShader.shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 }
 
+GLuint shadowMapFBO;
+GLuint depthMapTexture;
 void initFBO() {
-	// Generate the FBO
+	//TODO - Create the FBO, the depth texture and attach the depth texture to the FBO
 	glGenFramebuffers(1, &shadowMapFBO);
-
-	// Create depth texture for FBO
+	 
+	//create depth texture for FBO 
 	glGenTextures(1, &depthMapTexture);
 	glBindTexture(GL_TEXTURE_2D, depthMapTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
-		SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 	float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
-	// Attach the texture to the FBO
+	//attach texture to FBO 
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMapTexture, 0);
-	glDrawBuffer(GL_NONE);  // We do not need a color buffer
-	glReadBuffer(GL_NONE);  // Disable read buffer
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
 
+}
 
 glm::mat4 computeLightSpaceTrMatrix() {
-	glm::mat4 lightView = glm::lookAt(lightDir, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	// aplica rotatia
+	glm::vec3 rotatedLightDir = glm::vec3(lightRotation * glm::vec4(lightDir, 0.0f));
+
+	glm::mat4 lightView = glm::lookAt(rotatedLightDir, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
 	const GLfloat near_plane = 0.1f, far_plane = 6.0f;
 	glm::mat4 lightProjection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, near_plane, far_plane);
-
 	glm::mat4 lightSpaceTrMatrix = lightProjection * lightView;
+
 	return lightSpaceTrMatrix;
 }
-
 
 void drawObjects(gps::Shader shader, bool depthPass) {
 		
@@ -349,23 +346,17 @@ void renderScene() {
 	//TODO - Send the light-space transformation matrix to the depth map creation shader and
 	//		 render the scene in the depth map
 
-	// Depth map creation pass
-	glm::mat4 lightSpaceMatrix = computeLightSpaceTrMatrix();
+	glm::mat4 lightSpaceTrMatrix = computeLightSpaceTrMatrix();
 
-	// Render depth map
-	glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO);
-	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-	glClear(GL_DEPTH_BUFFER_BIT);
-
-	gps::Shader depthMapShader;
-	depthMapShader.loadShader("shaders/depthShader.vert", "shaders/depthShader.frag");
 	depthMapShader.useShaderProgram();
 
-	glUniformMatrix4fv(glGetUniformLocation(depthMapShader.shaderProgram, "lightSpaceTrMatrix"),
-		1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
+	glUniformMatrix4fv(glGetUniformLocation(depthMapShader.shaderProgram, "lightSpaceTrMatrix"), 1, GL_FALSE, glm::value_ptr(computeLightSpaceTrMatrix()));
 
-	// Draw scene in depth pass
-	drawObjects(depthMapShader, true); // Passing 'true' as depthPass flag
+	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO);
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	drawObjects(depthMapShader, true);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

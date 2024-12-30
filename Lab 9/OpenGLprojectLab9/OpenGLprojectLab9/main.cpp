@@ -222,6 +222,7 @@ void initOpenGLState()
 }
 
 void initObjects() {
+	//nanosuit.LoadModel("objects/nanosuit/masinabackup.obj");
 	nanosuit.LoadModel("objects/nanosuit/nanosuit.obj");
 	ground.LoadModel("objects/ground/ground.obj");
 	lightCube.LoadModel("objects/cube/cube.obj");
@@ -317,6 +318,7 @@ void drawObjects(gps::Shader shader, bool depthPass) {
 	shader.useShaderProgram();
 	
 	model = glm::rotate(glm::mat4(1.0f), glm::radians(angleY), glm::vec3(0.0f, 1.0f, 0.0f));
+	//model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));
 	glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
 	// do not send the normal matrix if we are rendering in the depth map

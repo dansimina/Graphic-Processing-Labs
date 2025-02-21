@@ -72,6 +72,8 @@ gps::Shader depthMapShader;
 
 bool showDepthMap;
 
+glm::vec3 pos = glm::vec3(0.0);
+
 GLenum glCheckError_(const char *file, int line) {
 	GLenum errorCode;
 	while ((errorCode = glGetError()) != GL_NO_ERROR)
@@ -110,6 +112,11 @@ void keyboardCallback(GLFWwindow* window, int key, int scancode, int action, int
 		else if (action == GLFW_RELEASE)
 			pressedKeys[key] = false;
 	}
+
+	if (key == GLFW_KEY_W && action == GLFW_PRESS)
+		pos.x += 0.02;
+	if (key == GLFW_KEY_S && action == GLFW_PRESS)
+		pos.x -= 0.02;
 }
 
 void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
@@ -317,6 +324,7 @@ void drawObjects(gps::Shader shader, bool depthPass) {
 		
 	shader.useShaderProgram();
 	
+	glm::mat4 aux = model;
 	model = glm::rotate(glm::mat4(1.0f), glm::radians(angleY), glm::vec3(0.0f, 1.0f, 0.0f));
 	//model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));
 	glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
